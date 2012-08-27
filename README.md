@@ -4,7 +4,7 @@ This module provides helper functions for the session manager module. To use the
 
     "includes" : "com.campudus.session-manager-helper-v1.0"
 
-For Java and Scala source code compilation, you need the SessionHelper class in your classpath. Use task 'jar' to create a jar file containing everything you need ('./mk jar' in *nix or 'wmk jar' in Windows).
+For Java and Scala source code compilation, you need the SessionHelper classes in your classpath. Use task 'jar' to create a jar file containing everything you need ('./mk jar' in *nix or 'wmk jar' in Windows) or add the classes contained in the module directly to your classpath.
 
 If you already have other includes, you need to separate them with commas - see the official vertx modules documentation.
 
