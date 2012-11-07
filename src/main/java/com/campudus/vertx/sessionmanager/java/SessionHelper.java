@@ -133,7 +133,7 @@ public class SessionHelper {
 				.putString("sessionId", sessionId).putArray("fields", requiredFields);
 		eventBus.send(smAddress, json, new Handler<Message<JsonObject>>() {
 			public void handle(Message<JsonObject> event) {
-				if (event.body.getField("error") == null) {
+				if (! "error".equals(event.body.getString("status"))) {
 					handler.handle(event.body.getObject("data"));
 				}
 			};
