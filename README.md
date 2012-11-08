@@ -2,7 +2,7 @@
 
 This module provides helper functions for the session manager module. To use these functions, you need to add the following code in your mod.json:
 
-    "includes" : "com.campudus.session-manager-helper-v1.0.1"
+    "includes" : "com.campudus.session-manager-helper-v1.1.0"
 
 For Java and Scala source code compilation, you need the SessionHelper classes in your classpath. Use task 'jar' to create a jar file containing everything you need ('./mk jar' in *nix or 'wmk jar' in Windows) or add the classes contained in the module directly to your classpath.
 
@@ -14,7 +14,7 @@ If you want to enhance this module by providing additional wrappers for other la
 
 ## Dependencies
 
-This module requires the scala language module (org.scala-lang.scala-library-v2.9.2) and a session manager instance running and listening on the event bus.
+This module requires the scala language module (org.scala-lang.scala-library-v2.9.2) and a session manager instance running and listening on the event bus. It is built against Vert.x 1.3.0.
 
 If you don't have a session manager, this module won't be useful to you. You can grab a compatible session manager module in the [campudus/vertx-session-manager repository](https://github.com/campudus/vertx-session-manager).
 
