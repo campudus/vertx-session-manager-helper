@@ -125,7 +125,7 @@ public class SessionHelper {
 	 * @param requiredFields
 	 *            The wanted fields from the session storage.
 	 * @param handler
-	 *            A handler A handler for the received data.
+	 *            A handler for the received data.
 	 */
 	public void withSessionData(String sessionId, JsonArray requiredFields,
 			final Handler<JsonObject> handler) {
@@ -133,9 +133,7 @@ public class SessionHelper {
 				.putString("sessionId", sessionId).putArray("fields", requiredFields);
 		eventBus.send(smAddress, json, new Handler<Message<JsonObject>>() {
 			public void handle(Message<JsonObject> event) {
-				if (! "error".equals(event.body.getString("status"))) {
-					handler.handle(event.body.getObject("data"));
-				}
+				handler.handle(event.body);
 			};
 		});
 	}

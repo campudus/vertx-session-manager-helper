@@ -12,9 +12,9 @@ import org.vertx.java.core.json.JsonObject
 import org.vertx.java.core.Handler
 import org.vertx.java.core.Vertx
 
-class SessionHelper(val sessionManagerAddress: String, val cookieField: String, private val vertx: Vertx) {
-  def this(smAddress: String, vertx: Vertx) = this(smAddress, SessionHelper.defaultCookieField, vertx)
-  def this(vertx: Vertx) = this(SessionHelper.defaultSmAddress, SessionHelper.defaultCookieField, vertx)
+class SessionHelper(private val vertx: Vertx, val sessionManagerAddress: String, val cookieField: String) {
+  def this(vertx: Vertx, smAddress: String) = this(vertx, smAddress, SessionHelper.defaultCookieField)
+  def this(vertx: Vertx) = this(vertx, SessionHelper.defaultSmAddress, SessionHelper.defaultCookieField)
 
   import scala.collection.JavaConversions._
 
@@ -50,7 +50,75 @@ class SessionHelper(val sessionManagerAddress: String, val cookieField: String, 
   }
 
   /**
-   * Puts multiple data fields into the session storage and retrieves the result of the storage
+   * Gets a single data field from the session storage by using an HttpServerRequest.
+   *
+   * @param req
+   *            The http server request.
+   * @param requiredField
+   *            The wanted field from the session storage.
+   * @param doneHandler
+   *            A handler for the received data.
+   */
+  def withSessionData(req: HttpServerRequest, requiredField: String)(doneHandler: JsonObject => Unit) {
+    withSessionData(req, new JsonArray().addString(requiredField))(doneHandler)
+  }
+
+  /**
+   * Gets multiple data fields from the session storage by using an HttpServerRequest.
+   *
+   * @param req
+   *            The http server request.
+   * @param requiredFields
+   *            The wanted fields from the session storage.
+   * @param doneHandler
+   *            A handler A handler for the received data.
+   */
+  def withSessionData(req: HttpServerRequest, requiredFields: JsonArray)(doneHandler: JsonObject => Unit) {
+    withSessionId(req)({
+      sessionId: String =>
+        withSessionData(sessionId, requiredFields)(doneHandler)
+    })
+  }
+
+  /**
+   * Gets a single data field from the session storage by using a session id.
+   *
+   * @param sessionId
+   *            The id of the session.
+   * @param requiredField
+   *            The wanted field from the session storage.
+   * @param handler
+   *            A handler for the received data.
+   */
+  def withSessionData(sessionId: String, requiredField: String)(doneHandler: JsonObject => Unit) {
+    withSessionData(sessionId, new JsonArray().addString(requiredField))(doneHandler)
+  }
+
+  /**
+   * Gets multiple data fields from the session storage by using a session id.
+   *
+   * @param sessionId
+   *            The id of the session.
+   * @param requiredFields
+   *            The wanted fields from the session storage.
+   * @param handler
+   *            A handler for the received data.
+   */
+  def withSessionData(sessionId: String, requiredFields: JsonArray)(doneHandler: JsonObject => Unit) {
+    val json = new JsonObject().putString("action", "get")
+      .putString("sessionId", sessionId).putArray("fields", requiredFields)
+
+      println("in withSessionData " + sessionId + " - " + requiredFields.encode)
+    eventBus.send(sessionManagerAddress, json, new Handler[Message[JsonObject]]() {
+      override def handle(event: Message[JsonObject]) {
+        println("got a reply " + event.body.encode)
+        doneHandler(event.body);
+      }
+    })
+  }
+
+  /**
+   * Puts multiple data fields into the session storage without need of the result.
    * operation.
    *
    * @param req
@@ -81,7 +149,7 @@ class SessionHelper(val sessionManagerAddress: String, val cookieField: String, 
   }
 
   /**
-   * Puts multiple data fields into the session storage and retrieves the result of the storage
+   * Puts multiple data fields into the session storage without need of the result.
    * operation.
    *
    * @param sessionId
@@ -122,7 +190,8 @@ class SessionHelper(val sessionManagerAddress: String, val cookieField: String, 
   }
 
   /**
-   * Puts data which can be saved into a JsonObject into the session storage without need of the result.
+   * Puts data which can be saved into a JsonObject into the session storage and retrieves the result of the storage
+   * operation.
    *
    * @param req
    *            The http server request.
@@ -153,7 +222,8 @@ class SessionHelper(val sessionManagerAddress: String, val cookieField: String, 
     sendPutData(sessionId, implicitly[CanBeSavedIntoJson[T]].put(new JsonObject, key, value))
 
   /**
-   * Puts data which can be saved into a JsonObject into the session storage without need of the result.
+   * Puts data which can be saved into a JsonObject into the session storage and retrieves the result of the storage
+   * operation.
    *
    * @param sessionId
    *            The session id.

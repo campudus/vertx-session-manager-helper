@@ -17,116 +17,65 @@
 apply plugin: 'scala'
 apply plugin: 'eclipse'
 apply plugin: 'idea'
+apply from: "gradle/vertxplugin.gradle"
+apply from: "gradle/maven.gradle"
 
-defaultTasks = ['assemble']
+// We load some extra properties from vertx.properties
+loadProperties("vertx.properties")
 
-sourceCompatibility = '1.7'
-targetCompatibility = '1.7'
+version = project.ext.version
+group = groupname
+archivesBaseName = artifact
 
-configurations {
-  provided
+vertx {
+	version = "${project.vertxVersion}"
+	junitVersion = "${project.junitVersion}"
+	useTestframework = true
+	langs = ['java', 'scala']
+	testTimeout = 30
+	showStandardStreams = true
 }
 
-repositories {
-  maven { url 'https://oss.sonatype.org/content/repositories/snapshots' }
-  mavenCentral()
-}
+def configurePom(def pom) {
+  pom.project {
+    description 'This module provides helper functions for the session manager module.'
+    inceptionYear '2013'
+    packaging 'zip'
+    url 'https://github.com/campudus/vertx-session-manager-helper'
 
-dependencies {
-  provided "org.vert-x:vertx-core:$vertxVersion"
-  provided "org.vert-x:vertx-platform:$vertxVersion"
+    developers {
+      developer {
+        id 'narigo'
+        name 'Joern Bernhardt'
+        email 'jb@campudus.com'
+      }
+    }
 
-  testCompile "org.vert-x:vertx-lang-java:$vertxVersion"
-  testCompile( "org.vert-x:vertx-testframework:$vertxVersion" ) {
-    transitive = false
-  }
-  testCompile "junit:junit:$junitVersion"
+    scm {
+      url 'https://github.com/campudus/vertx-session-manager-helper'
+    }
 
-  // Libraries needed to run the scala tools
-  scalaTools "org.scala-lang:scala-compiler:$scalaVersion"
-  scalaTools "org.scala-lang:scala-library:$scalaVersion"
+    licenses {
+      license {
+        name 'The Apache Software License, Version 2.0'
+        url 'http://www.apache.org/licenses/LICENSE-2.0.txt'
+        distribution 'repo'
+      }
+    }
 
-  // Libraries needed for scala api
-  provided "org.scala-lang:scala-library:$scalaVersion"
-}
-
-sourceSets {
-  main {
-    compileClasspath = compileClasspath + configurations.provided
-  }
-}
-
-jar {
-  baseName = 'com.campudus.session-manager-helper'
-}
-
-task copyMod( type:Copy, dependsOn: 'classes' ) {
-  into "build/copyMod/$modulename-v$version"
-  from 'build/classes/main'
-  from 'src/main/conf'
-  into( 'lib' ) {
-    from configurations.compile
-  }
-}
-
-task prepareVertxTest(type: Sync, dependsOn: ['copyMod']) {
-  from 'build/copyMod'
-  into 'build/tmp/mod-test'
-}
-
-test {
-  // Can't have the app on the vert.x classpath
-  classpath = files( classpath.findAll {
-    !( it.toString() ==~ /.+build\/(classes|resources)\/main$/ )
-  } )
-
-  // Some vert.x properties
-  systemProperty 'vertx.test.timeout', 15
-  systemProperty 'vertx.mods', "$projectDir/build/tmp/mod-test"
-  systemProperty 'vertx.version', "$project.version"
-
-  // Dump output
-  testLogging.showStandardStreams = true
-
-  // No idea why we need to depend on testClasses...
-  dependsOn << [ 'testClasses', 'copyMod', 'prepareVertxTest' ]
-}
-
-task collectDeps(type: Copy) {
-  group = 'vert.x'
-  description = 'conveniently collect dependencies for other IDEs'
-  destinationDir = file("build/deps")
-  into("compile") {
-    from configurations.compile
-  }
-  into("test") {
-    from configurations.testCompile
+    properties {
+      setProperty('project.build.sourceEncoding', 'UTF8')
+    }
   }
 }
 
-// Package into build/libs/mod.zip
-task dist( type: Zip, dependsOn: 'copyMod' ) {
-  group = 'vert.x'
-  description = "Assembles a vert.x module in 'mod.zip' format"
-  destinationDir = project.file('build/libs')
-  archiveName = 'mod.zip'
-  from project.file("build/copyMod")
-}
-
-task release( type: Copy, dependsOn: ['dist', 'jar'] ) {
-  group = 'vert.x'
-  description = "Builds the module for use in the module repository into mods/$modulename-v$version"
-  destinationDir = project.file('build/release')
-  into ("$modulename-v$version") {
-    from 'build/libs/mod.zip'
-    from 'README.md'
+def loadProperties(String sourceFileName) {
+  def config = new Properties()
+  def propFile = new File(sourceFileName)
+  if (propFile.canRead()) {
+    config.load(new FileInputStream(propFile))
+    for (Map.Entry property in config) {
+      project.ext[property.key] = property.value;
+    }
   }
-}
-
-task install(type: Copy, dependsOn: 'copyMod') {
-  try {
-    destinationDir = new File(System.getenv()['VERTX_MODS'])
-  } catch(NullPointerException e) {
-  }
-  from 'build/copyMod'
 }
